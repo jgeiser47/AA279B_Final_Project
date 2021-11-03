@@ -27,10 +27,10 @@ for i = 1:size(X,1)
     end
 end
 
-% Constraint lines
+% Constraint lines (0 < TOF < 2 years)
 c1_x = linspace(x_beg, x_end+100, N);
 c1_y = c1_x;
-c2_y = c1_x + 365*1.5;
+c2_y = c1_x + 365*2;
 
 % Add values to struct
 s.N = N;
