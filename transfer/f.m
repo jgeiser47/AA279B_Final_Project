@@ -5,5 +5,5 @@ function fx = f(x1, x2)
 
 % Calculate total dV
 data = solve_lambert(x1, x2);
-fx = data.dv_tot;
+fx = data.C3_1;
 end
