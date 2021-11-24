@@ -6,12 +6,12 @@ CONST = struct();
 % Gravitational parameters
 CONST.mu_Sun = 1.3271244004193938e11;
 CONST.mu_Earth = 3.986004418e5;
-CONST.mu_Mars = 42828.3719;
+CONST.mu_Mars = 42828.375816;
 CONST.MJD_0 = cal_to_MJD(2033, 3, 25, 0, 0, 0);
 
 % Earth at depature epoch
 MJD_Earth_dep = cal_to_MJD(2033, 3, 25, 0, 0, 0);
-rv_Earth_dep = get_planet_rv(3, MJD_Earth_dep);
+rv_Earth_dep = get_Earth_rv(MJD_Earth_dep);
 r_Earth_dep = rv_Earth_dep(1:3);
 v_Earth_dep = rv_Earth_dep(4:6);
 CONST.r_Earth_dep = r_Earth_dep;
@@ -19,7 +19,7 @@ CONST.v_Earth_dep = v_Earth_dep;
 
 % Mars at arrival epoch
 MJD_Mars_arr  = cal_to_MJD(2034, 1, 28, 0, 0, 0);
-rv_Mars_arr  = get_planet_rv(4, MJD_Mars_arr);
+rv_Mars_arr  = get_Mars_rv(MJD_Mars_arr);
 r_Mars_arr = rv_Mars_arr(1:3);
 v_Mars_arr = rv_Mars_arr(4:6);
 CONST.r_Mars_arr = r_Mars_arr;
@@ -38,7 +38,7 @@ plot_single_traj(CONST, v0_guess);
 % Shooting method solution
 x0 = v0_guess;
 dt=TOF;
-y_des = [r_Mars_arr(1)+10000; r_Mars_arr(2); r_Mars_arr(3)];
+y_des = [r_Mars_arr(1); r_Mars_arr(2)+20000; r_Mars_arr(3)];
 myfun = @run_traj_wrapper;
 v0_converged = shooting(myfun,y_des,x0,dt,CONST);
 plot_single_traj(CONST, v0_converged);
@@ -56,8 +56,8 @@ r_Earth_vec = zeros(length(t_sim),6);
 r_Mars_vec = zeros(length(t_sim),6);
 for i = 1:length(t_sim)
     MJD_i = MJD_Earth_dep + t_sim(i)/86400;
-    r_Earth_vec(i,:) = get_planet_rv(3, MJD_i)';
-    r_Mars_vec(i,:) = get_planet_rv(4, MJD_i)';
+    r_Earth_vec(i,:) = get_Earth_rv(MJD_i)';
+    r_Mars_vec(i,:) = get_Mars_rv(MJD_i)';
 end
 
 figure(); hold on; grid on; axis equal;
@@ -157,9 +157,9 @@ X = x(1); Y = x(2); Z = x(3); VX = x(4); VY = x(5); VZ = x(6);
 v = [VX; VY; VZ];
 r = [X; Y; Z];
 MJD = MJD_0 + t/86400;
-rv_Earth = get_planet_rv(3, MJD);
+rv_Earth = get_Earth_rv(MJD);
 r_Earth = rv_Earth(1:3);
-rv_Mars = get_planet_rv(4, MJD);
+rv_Mars = get_Mars_rv(MJD);
 r_Mars = rv_Mars(1:3);
 r2 = r - r_Mars;
 

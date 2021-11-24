@@ -7,12 +7,12 @@ function data = solve_lambert(MJD_1, MJD_2)
 mu = 1.3271244004193938e11;
 
 % Get pos/vel of Earth at desired Earth departure epoch
-rv_Earth = get_planet_rv(3, MJD_1);
+rv_Earth = get_Earth_rv(MJD_1);
 r_Earth = rv_Earth(1:3);
 v_Earth = rv_Earth(4:6);
 
 % Get pos/vel of Mars at desired Mars arrival epoch
-rv_Mars = get_planet_rv(4, MJD_2);
+rv_Mars = get_Mars_rv(MJD_2);
 r_Mars = rv_Mars(1:3);
 v_Mars = rv_Mars(4:6);
 
