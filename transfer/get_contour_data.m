@@ -22,6 +22,7 @@ y = [y_beg : grid_dt : y_end]; % y = linspace(y_beg, y_end, N);
 Z = zeros(size(X));
 RLA = zeros(size(X));
 DLA = zeros(size(X));
+v1_out = zeros([size(X), 3]);
 
 % Populate f(x) values given inputs x1 and x2
 for i = 1:size(X,1)
@@ -34,6 +35,7 @@ for i = 1:size(X,1)
         Z(i,j) = data_ij.C3_1;
         RLA(i,j) = data_ij.RLA;
         DLA(i,j) = data_ij.DLA;
+        v1_out(i,j,:) = data_ij.v1_out;
     end
 end
 
@@ -50,5 +52,5 @@ s.X = X; s.Y = Y; s.Z = Z;
 s.c1_x = c1_x; s.c1_y = c1_y; s.c2_y = c2_y;
 % s.levels = [5,5.5,6,6.5,7,7.5,8,8.5,9,10,11,12,13,14,15];
 s.levels = [7,8,9,10,12,14,16,18,20,25,30];
-s.RLA = RLA; s.DLA = DLA;
+s.RLA = RLA; s.DLA = DLA; s.v1_out = v1_out;
 end
