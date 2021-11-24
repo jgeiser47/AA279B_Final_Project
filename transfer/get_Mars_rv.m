@@ -1,6 +1,6 @@
 function rv = get_Mars_rv(MJD)
 
-model = 'ephemeris';
+model = 'circular';
 
 if strcmp(model, 'ephemeris')
     rv = get_planet_rv(4, MJD);

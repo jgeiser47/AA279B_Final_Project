@@ -32,16 +32,38 @@ CONST.TOF = TOF;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % From lambert solver solution
 v0_guess = [4.74960464561663; -32.2010671899605; 0.0608576993798047]; 
-plot_single_traj(CONST, v0_guess);
+%plot_single_traj(CONST, v0_guess);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Shooting method solution
+
+a_Mars = 227953016; n_Mars = sqrt(CONST.mu_Sun/(a_Mars^3));
+%y_des = [r_Mars_arr(1); r_Mars_arr(2); r_Mars_arr(3)+15000];
+rv_des_syn_nondim = [1.000291664674990; 0; 0.005620030466350; 0; -0.000789269445422; 0];
+rv_des_syn = rv_des_syn_nondim .* a_Mars; rv_des_syn(4:6) = rv_des_syn(4:6) .* n_Mars;
+rv_des = syn_to_inert(MJD_Mars_arr, rv_des_syn')';
+
 x0 = v0_guess;
 dt=TOF;
-y_des = [r_Mars_arr(1); r_Mars_arr(2)+20000; r_Mars_arr(3)];
 myfun = @run_traj_wrapper;
-v0_converged = shooting(myfun,y_des,x0,dt,CONST);
+v0_converged = shooting(myfun,rv_des(1:3),x0,dt,CONST);
 plot_single_traj(CONST, v0_converged);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Attempt at getting NRHO section working based on IC
+
+% x0 = rv_des;
+% t_sim = [TOF : 86400/10 : TOF+(86400*100)];
+% options = odeset('RelTol', 1e-6, 'AbsTol', 1e-9);
+% [t_NRHO, x_NRHO] = ode113(@(t,x) calc_xdot_dim(t,x,CONST), t_sim, x0, options);
+% 
+% MJDs_NRHO = (t_NRHO./86400) + CONST.MJD_0;
+% x_syn_NRHO = inert_to_syn(MJDs_NRHO, x_NRHO(:,1:3));
+
+% figure(); hold on; grid on; axis equal;
+% plot3(gca,0,0,0,'y*');
+% plot3(gca,a_Mars,0,0,'r*');
+% plot3(gca,x_syn_NRHO(:,1), x_syn_NRHO(:,2), x_syn_NRHO(:,3), 'm-', 'Linewidth', 2);
 
 function plot_single_traj(CONST, v0)
 
@@ -54,18 +76,37 @@ options = odeset('RelTol', 1e-6, 'AbsTol', 1e-9);
 
 r_Earth_vec = zeros(length(t_sim),6);
 r_Mars_vec = zeros(length(t_sim),6);
+MJDs_vec = zeros(length(t_sim),1);
 for i = 1:length(t_sim)
     MJD_i = MJD_Earth_dep + t_sim(i)/86400;
+    MJDs_vec(i) = MJD_i;
     r_Earth_vec(i,:) = get_Earth_rv(MJD_i)';
     r_Mars_vec(i,:) = get_Mars_rv(MJD_i)';
 end
 
 figure(); hold on; grid on; axis equal;
+plot3(x_out(:,1), x_out(:,2), x_out(:,3), 'k-', 'Linewidth', 2);
 plot3(r_Earth_vec(:,1), r_Earth_vec(:,2), r_Earth_vec(:,3), 'b:', 'Linewidth', 2);
 plot3(r_Mars_vec(:,1), r_Mars_vec(:,2), r_Mars_vec(:,3), 'r:', 'Linewidth', 2);
-plot3(x_out(:,1), x_out(:,2), x_out(:,3), 'k-', 'Linewidth', 2);
+plot3(0,0,0,'y*');
+legend({'Spacecraft', 'Earth', 'Mars', 'Sun'}, 'Location', 'Northwest');
+xlabel('X [km]'); ylabel('Y [km]'); zlabel('Z [km]');
+title('Transfer Trajectory in Heliocentric Intertial Frame');
 
-error = norm(r_Mars_vec(end,1:3) - x_out(end,1:3))
+%error = norm(r_Mars_vec(end,1:3) - x_out(end,1:3))
+
+x_out_syn = inert_to_syn(MJDs_vec, x_out(:,1:3));
+r_Earth_vec_syn = inert_to_syn(MJDs_vec, r_Earth_vec(:,1:3));
+r_Mars_vec_syn = inert_to_syn(MJDs_vec, r_Mars_vec(:,1:3));
+
+figure(); hold on; grid on; axis equal;
+plot3(x_out_syn(:,1), x_out_syn(:,2), x_out_syn(:,3), 'k', 'Linewidth', 2);
+plot3(r_Earth_vec_syn(:,1), r_Earth_vec_syn(:,2), r_Earth_vec_syn(:,3), 'b:', 'Linewidth', 2);
+plot3(r_Mars_vec_syn(:,1), r_Mars_vec_syn(:,2), r_Mars_vec_syn(:,3), 'r*');
+plot3(0,0,0,'y*');
+legend({'Spacecraft', 'Earth', 'Mars', 'Sun'}, 'Location', 'Northeast');
+xlabel('X [km]'); ylabel('Y [km]'); zlabel('Z [km]');
+title('Transfer Trajectory in Sun-Mars Rotating Frame');
 end
 
 function x0_out = shooting(f,y_des,x0,TOF,CONST)
@@ -162,6 +203,9 @@ r_Earth = rv_Earth(1:3);
 rv_Mars = get_Mars_rv(MJD);
 r_Mars = rv_Mars(1:3);
 r2 = r - r_Mars;
+if norm(r2) < 9000
+    disp('Warning: too close to Mars, may have trouble converging');
+end
 
 % State space form
 xdot = zeros(6,1);
