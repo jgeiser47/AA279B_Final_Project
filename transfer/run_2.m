@@ -8,6 +8,8 @@ CONST.mu_Sun = 1.3271244004193938e11;
 CONST.mu_Earth = 3.986004418e5;
 CONST.mu_Mars = 42828.375816;
 CONST.MJD_0 = cal_to_MJD(2033, 3, 25, 0, 0, 0);
+CONST.a_Mars = 227953016;
+CONST.n_Mars = sqrt(CONST.mu_Sun/(CONST.a_Mars^3));
 
 % Earth at depature epoch
 MJD_Earth_dep = cal_to_MJD(2033, 3, 25, 0, 0, 0);
@@ -22,6 +24,7 @@ MJD_Mars_arr  = cal_to_MJD(2034, 1, 28, 0, 0, 0);
 rv_Mars_arr  = get_Mars_rv(MJD_Mars_arr);
 r_Mars_arr = rv_Mars_arr(1:3);
 v_Mars_arr = rv_Mars_arr(4:6);
+CONST.MJD_Mars_arr = MJD_Mars_arr;
 CONST.r_Mars_arr = r_Mars_arr;
 CONST.v_Mars_arr = v_Mars_arr;
 
@@ -37,10 +40,9 @@ v0_guess = [4.74960464561663; -32.2010671899605; 0.0608576993798047];
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Shooting method solution
 
-a_Mars = 227953016; n_Mars = sqrt(CONST.mu_Sun/(a_Mars^3));
 %y_des = [r_Mars_arr(1); r_Mars_arr(2); r_Mars_arr(3)+15000];
-rv_des_syn_nondim = [1.000291664674990; 0; 0.005620030466350; 0; -0.000789269445422; 0];
-rv_des_syn = rv_des_syn_nondim .* a_Mars; rv_des_syn(4:6) = rv_des_syn(4:6) .* n_Mars;
+rv_des_syn_nondim = [1.00119166467499; 0; 0.00575337168664772; 0; -0.00302921598951622; 0];
+rv_des_syn = rv_des_syn_nondim .* CONST.a_Mars; rv_des_syn(4:6) = rv_des_syn(4:6) .* CONST.n_Mars;
 rv_des = syn_to_inert(MJD_Mars_arr, rv_des_syn')';
 
 x0 = v0_guess;
@@ -51,6 +53,7 @@ plot_single_traj(CONST, v0_converged);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Attempt at getting NRHO section working based on IC
+
 
 % x0 = rv_des;
 % t_sim = [TOF : 86400/10 : TOF+(86400*100)];
@@ -66,6 +69,18 @@ plot_single_traj(CONST, v0_converged);
 % plot3(gca,x_syn_NRHO(:,1), x_syn_NRHO(:,2), x_syn_NRHO(:,3), 'm-', 'Linewidth', 2);
 
 function plot_single_traj(CONST, v0)
+
+load('nominal_north_NRHO.mat');
+t_nrho = (t_nrho ./ CONST.n_Mars);
+MJD_nrho = CONST.MJD_0 + (CONST.TOF ./86400) + (t_nrho ./ 86400);
+
+rv_des_syn_nondim = X_nrho(1,1:6);
+rv_des_syn = rv_des_syn_nondim .* CONST.a_Mars; rv_des_syn(4:6) = rv_des_syn(4:6) .* CONST.n_Mars;
+rv_des = syn_to_inert(CONST.MJD_Mars_arr, rv_des_syn)';
+
+X_nrho = X_nrho(:,1:3);
+X_nrho = X_nrho .* CONST.a_Mars;
+X_nrho_inert = syn_to_inert(MJD_nrho, X_nrho);
 
 r_Earth_dep = CONST.r_Earth_dep; TOF = CONST.TOF; MJD_Earth_dep = CONST.MJD_0;
 
@@ -89,7 +104,8 @@ plot3(x_out(:,1), x_out(:,2), x_out(:,3), 'k-', 'Linewidth', 2);
 plot3(r_Earth_vec(:,1), r_Earth_vec(:,2), r_Earth_vec(:,3), 'b:', 'Linewidth', 2);
 plot3(r_Mars_vec(:,1), r_Mars_vec(:,2), r_Mars_vec(:,3), 'r:', 'Linewidth', 2);
 plot3(0,0,0,'y*');
-legend({'Spacecraft', 'Earth', 'Mars', 'Sun'}, 'Location', 'Northwest');
+plot3(X_nrho_inert(:,1), X_nrho_inert(:,2), X_nrho_inert(:,3), 'm-', 'Linewidth', 2);
+legend({'Transfer', 'Earth', 'Mars', 'Sun', 'NRHO'}, 'Location', 'Northwest');
 xlabel('X [km]'); ylabel('Y [km]'); zlabel('Z [km]');
 title('Transfer Trajectory in Heliocentric Intertial Frame');
 
@@ -104,9 +120,16 @@ plot3(x_out_syn(:,1), x_out_syn(:,2), x_out_syn(:,3), 'k', 'Linewidth', 2);
 plot3(r_Earth_vec_syn(:,1), r_Earth_vec_syn(:,2), r_Earth_vec_syn(:,3), 'b:', 'Linewidth', 2);
 plot3(r_Mars_vec_syn(:,1), r_Mars_vec_syn(:,2), r_Mars_vec_syn(:,3), 'r*');
 plot3(0,0,0,'y*');
-legend({'Spacecraft', 'Earth', 'Mars', 'Sun'}, 'Location', 'Northeast');
+plot3(gca, X_nrho(:,1), X_nrho(:,2), X_nrho(:,3), 'm-', 'Linewidth', 2, 'DisplayName', 'NRHO');
+legend({'Transfer', 'Earth', 'Mars', 'Sun', 'NRHO'}, 'Location', 'Northeast');
 xlabel('X [km]'); ylabel('Y [km]'); zlabel('Z [km]');
 title('Transfer Trajectory in Sun-Mars Rotating Frame');
+
+dv_vec = rv_des(4:6) - x_out(end,4:6)';
+fprintf('Inertial velocity before NRHO insertion: [%f, %f, %f]\n', x_out(end,4),x_out(end,5),x_out(end,6));
+fprintf('Inertial velocity after NRHO insertion:  [%f, %f, %f]\n', rv_des(4),rv_des(5),rv_des(6));
+fprintf('Delta-V components: [%f, %f, %f]\n', dv_vec(1),dv_vec(2),dv_vec(3));
+fprintf('Delta-V magnitude: %f km/s\n', norm(dv_vec));
 end
 
 function x0_out = shooting(f,y_des,x0,TOF,CONST)
