@@ -7,12 +7,12 @@ CONST = struct();
 CONST.mu_Sun = 1.3271244004193938e11;
 CONST.mu_Earth = 3.986004418e5;
 CONST.mu_Mars = 42828.375816;
-CONST.MJD_0 = cal_to_MJD(2033, 3, 25, 0, 0, 0);
+CONST.MJD_0 = cal_to_MJD(2033, 3, 28, 0, 0, 0); %cal_to_MJD(2033, 3, 25, 0, 0, 0);cal_to_MJD(2033, 3, 25, 0, 0, 0);
 CONST.a_Mars = 227953016;
 CONST.n_Mars = sqrt(CONST.mu_Sun/(CONST.a_Mars^3));
 
 % Earth at depature epoch
-MJD_Earth_dep = cal_to_MJD(2033, 3, 25, 0, 0, 0);
+MJD_Earth_dep = cal_to_MJD(2033, 3, 28, 0, 0, 0); %cal_to_MJD(2033, 3, 25, 0, 0, 0);
 rv_Earth_dep = get_Earth_rv(MJD_Earth_dep);
 r_Earth_dep = rv_Earth_dep(1:3);
 v_Earth_dep = rv_Earth_dep(4:6);
@@ -20,7 +20,7 @@ CONST.r_Earth_dep = r_Earth_dep;
 CONST.v_Earth_dep = v_Earth_dep;
 
 % Mars at arrival epoch
-MJD_Mars_arr  = cal_to_MJD(2034, 1, 28, 0, 0, 0);
+MJD_Mars_arr  = cal_to_MJD(2034, 2, 15, 0, 0, 0); % cal_to_MJD(2034, 1, 28, 0, 0, 0);
 rv_Mars_arr  = get_Mars_rv(MJD_Mars_arr);
 r_Mars_arr = rv_Mars_arr(1:3);
 v_Mars_arr = rv_Mars_arr(4:6);
@@ -78,6 +78,7 @@ rv_des_syn_nondim = X_nrho(1,1:6);
 rv_des_syn = rv_des_syn_nondim .* CONST.a_Mars; rv_des_syn(4:6) = rv_des_syn(4:6) .* CONST.n_Mars;
 rv_des = syn_to_inert(CONST.MJD_Mars_arr, rv_des_syn)';
 
+% NRHO plot
 X_nrho = X_nrho(:,1:3);
 X_nrho = X_nrho .* CONST.a_Mars;
 X_nrho_inert = syn_to_inert(MJD_nrho, X_nrho);
@@ -89,6 +90,7 @@ t_sim = [0 : 86400 : TOF];
 options = odeset('RelTol', 1e-6, 'AbsTol', 1e-9);
 [t_out, x_out] = ode113(@(t,x) calc_xdot_dim(t,x,CONST), t_sim, x0, options);
 
+% Earth and Mars during transfer 
 r_Earth_vec = zeros(length(t_sim),6);
 r_Mars_vec = zeros(length(t_sim),6);
 MJDs_vec = zeros(length(t_sim),1);
@@ -99,22 +101,37 @@ for i = 1:length(t_sim)
     r_Mars_vec(i,:) = get_Mars_rv(MJD_i)';
 end
 
+% Earth and Mars during NRHO
+r_Earth_vec_2 = zeros(length(MJD_nrho),6);
+r_Mars_vec_2 = zeros(length(MJD_nrho),6);
+for i = 1:length(MJD_nrho)
+    MJD_i = MJD_nrho(i);
+    r_Earth_vec_2(i,:) = get_Earth_rv(MJD_i)';
+    r_Mars_vec_2(i,:) = get_Mars_rv(MJD_i)';
+end
+
+% Inertial Plot
 figure(); hold on; grid on; axis equal;
 plot3(x_out(:,1), x_out(:,2), x_out(:,3), 'k-', 'Linewidth', 2);
 plot3(r_Earth_vec(:,1), r_Earth_vec(:,2), r_Earth_vec(:,3), 'b:', 'Linewidth', 2);
 plot3(r_Mars_vec(:,1), r_Mars_vec(:,2), r_Mars_vec(:,3), 'r:', 'Linewidth', 2);
 plot3(0,0,0,'y*');
 plot3(X_nrho_inert(:,1), X_nrho_inert(:,2), X_nrho_inert(:,3), 'm-', 'Linewidth', 2);
-legend({'Transfer', 'Earth', 'Mars', 'Sun', 'NRHO'}, 'Location', 'Northwest');
+legend({'Transfer', 'Earth', 'Mars', 'Sun', 'NRHO'}, 'Location', 'Northwest', 'AutoUpdate', 'off');
 xlabel('X [km]'); ylabel('Y [km]'); zlabel('Z [km]');
-title('Transfer Trajectory in Heliocentric Intertial Frame');
+title('Transfer Trajectory in Heliocentric Inertial Frame');
+if 1
+    plot3(r_Earth_vec_2(:,1), r_Earth_vec_2(:,2), r_Earth_vec_2(:,3), 'b:', 'Linewidth', 2);
+    plot3(r_Mars_vec_2(:,1), r_Mars_vec_2(:,2), r_Mars_vec_2(:,3), 'r:', 'Linewidth', 2);
+    title('Full Trajectory in Heliocentric Inertial Frame');
+end
 
-%error = norm(r_Mars_vec(end,1:3) - x_out(end,1:3))
-
+% Conversion of Earth/Mars data to synodic
 x_out_syn = inert_to_syn(MJDs_vec, x_out(:,1:3));
 r_Earth_vec_syn = inert_to_syn(MJDs_vec, r_Earth_vec(:,1:3));
 r_Mars_vec_syn = inert_to_syn(MJDs_vec, r_Mars_vec(:,1:3));
 
+% Rotating (synodic) plot
 figure(); hold on; grid on; axis equal;
 plot3(x_out_syn(:,1), x_out_syn(:,2), x_out_syn(:,3), 'k', 'Linewidth', 2);
 plot3(r_Earth_vec_syn(:,1), r_Earth_vec_syn(:,2), r_Earth_vec_syn(:,3), 'b:', 'Linewidth', 2);
@@ -124,7 +141,11 @@ plot3(gca, X_nrho(:,1), X_nrho(:,2), X_nrho(:,3), 'm-', 'Linewidth', 2, 'Display
 legend({'Transfer', 'Earth', 'Mars', 'Sun', 'NRHO'}, 'Location', 'Northeast');
 xlabel('X [km]'); ylabel('Y [km]'); zlabel('Z [km]');
 title('Transfer Trajectory in Sun-Mars Rotating Frame');
+if 1
+    title('Full Trajectory in Sun-Mars Rotating Frame');
+end
 
+% Print data on delta-V
 dv_vec = rv_des(4:6) - x_out(end,4:6)';
 fprintf('Inertial velocity before NRHO insertion: [%f, %f, %f]\n', x_out(end,4),x_out(end,5),x_out(end,6));
 fprintf('Inertial velocity after NRHO insertion:  [%f, %f, %f]\n', rv_des(4),rv_des(5),rv_des(6));

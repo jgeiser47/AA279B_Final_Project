@@ -15,5 +15,5 @@ xlim([toDateNum(s.x_beg), toDateNum(s.x_end)]);
 ylim([toDateNum(s.y_beg), toDateNum(s.y_end)]);
 xlabel('Earth Departure Date');
 ylabel('Mars Arrival Date');
-patch(toDateNum([s.c1_x s.c1_x(end)]), toDateNum([s.c1_y s.c1_y(1)]), 'r', 'EdgeColor', 'none', 'FaceAlpha', 0.2);
+% patch(toDateNum([s.c1_x s.c1_x(end)]), toDateNum([s.c1_y s.c1_y(1)]), 'r', 'EdgeColor', 'none', 'FaceAlpha', 0.2);
 end
