@@ -1,6 +1,7 @@
 Description of each file:
 
 SCRIPTS:
+
 aa279Bnrho.m = This file finds a foundational L2 Halo Orbit.
 
 aa279Bnrho2.m = This file generates the family of Halo Orbits.
@@ -12,6 +13,7 @@ aa279Bnrho4.m = This file does the bulk of the work to find NRHOs from the Halo 
 aa279Bnrho5.m = This file is mainly for making final plots.
 
 FUNCTIONS:
+
 CR3BP_EOM_1.m = CR3BP equations of motion, no state transition matrix, Synodic Frame, Non-Dimensional
 
 CR3BP_EOM_2.m = CR3BP equations of motion, no state transition matrix, Inertial Frame, Dimensional (km,s)
@@ -25,6 +27,7 @@ HowellShooting.m = differential correction method to generate periodic orbits wi
 CR3BP_Stability.m = Calculates Halo Orbit stability indices. Doesn't work 100% of the time due to unpredictable ordering of eigenvalues.
 
 MAT FILES:
+
 nominal_north_NRHO.mat = Time History for nominal NRHO, non-dimnensional
 
 SMnorthL2.mat = Sun-Mars northern L2 Halo Orbit family. ICs and period for 100 orbits.
